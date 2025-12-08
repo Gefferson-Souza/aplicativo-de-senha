@@ -103,23 +103,6 @@
 
         // --- Screen 1: Public Display ---
         function PublicDisplayPage({ currentTicket, lastCalled }) {
-            const audioRef = useRef(null);
-
-            // Play sound when currentTicket changes
-            useEffect(() => {
-                if (currentTicket && audioRef.current) {
-                    // Small delay to ensure browser interaction policies are respected if possible,
-                    // though usually requires user interaction first. In this prototype context, we assume it's fine.
-                    // Or we just try to play.
-                    const playPromise = audioRef.current.play();
-                    if (playPromise !== undefined) {
-                        playPromise.catch(error => {
-                            console.log("Audio playback failed (likely needs user interaction first):", error);
-                        });
-                    }
-                }
-            }, [currentTicket]);
-
             return (
                 <div className="font-display bg-background-light dark:bg-background-dark">
                     <div className="relative flex h-screen w-full flex-col items-center justify-center p-4 sm:p-6 md:p-8">
@@ -155,10 +138,6 @@
                         <div className="absolute inset-0 -z-10 h-full w-full bg-background-dark">
                             <div className="absolute bottom-0 left-0 right-0 top-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
                         </div>
-                        <audio id="alert-sound" ref={audioRef} preload="auto">
-                            <source src="https://cdn.pixabay.com/audio/2021/08/04/audio_a747c35414.mp3" type="audio/mpeg" />
-                            Seu navegador não suporta o elemento de áudio.
-                        </audio>
                         <div className="absolute bottom-4 right-4">
                             <Link to="/management" className="px-4 py-2 text-sm bg-primary text-white rounded-lg opacity-50 hover:opacity-100 transition-opacity">
                                 Acessar Gerenciamento
@@ -367,10 +346,84 @@
             const [generatedTickets, setGeneratedTickets] = useState([]);
             const [counters, setCounters] = useState({ Normal: 0, Preferencial: 0 });
 
+            // Audio Context Ref to reuse context
+            const audioCtxRef = useRef(null);
+
             // Initialize dark mode
             useEffect(() => {
                 document.documentElement.classList.add('dark');
             }, []);
+
+            const playChime = async () => {
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioContext) return;
+
+                    if (!audioCtxRef.current) {
+                        audioCtxRef.current = new AudioContext();
+                    }
+
+                    const ctx = audioCtxRef.current;
+                    // Resume if suspended (common in browsers)
+                    if (ctx.state === 'suspended') {
+                        await ctx.resume();
+                    }
+
+                    const now = ctx.currentTime;
+
+                    // Oscillator 1 (Ding)
+                    const osc1 = ctx.createOscillator();
+                    const gain1 = ctx.createGain();
+                    osc1.type = "sine";
+                    osc1.frequency.setValueAtTime(660, now); // E5
+                    gain1.gain.setValueAtTime(0, now);
+                    gain1.gain.linearRampToValueAtTime(0.3, now + 0.05);
+                    gain1.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+                    osc1.connect(gain1);
+                    gain1.connect(ctx.destination);
+                    osc1.start(now);
+                    osc1.stop(now + 1.5);
+
+                    // Oscillator 2 (Dong)
+                    const osc2 = ctx.createOscillator();
+                    const gain2 = ctx.createGain();
+                    osc2.type = "sine";
+                    osc2.frequency.setValueAtTime(550, now + 0.6); // C#5
+                    gain2.gain.setValueAtTime(0, now + 0.6);
+                    gain2.gain.linearRampToValueAtTime(0.3, now + 0.65);
+                    gain2.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+                    osc2.connect(gain2);
+                    gain2.connect(ctx.destination);
+                    osc2.start(now + 0.6);
+                    osc2.stop(now + 2.5);
+
+                    return new Promise(resolve => setTimeout(resolve, 2000));
+                } catch (e) {
+                    console.error("Audio playback error:", e);
+                }
+            };
+
+            const speakAnnouncement = (text) => {
+                if ('speechSynthesis' in window) {
+                    // Cancel any previous speaking
+                    window.speechSynthesis.cancel();
+
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'pt-BR';
+                    utterance.rate = 0.9;
+                    window.speechSynthesis.speak(utterance);
+                }
+            };
+
+            // Play sound and speak when currentTicket changes
+            useEffect(() => {
+                if (currentTicket) {
+                    playChime().then(() => {
+                        const text = `Senha ${currentTicket.id}, ${currentTicket.station}`;
+                        speakAnnouncement(text);
+                    });
+                }
+            }, [currentTicket]);
 
             // Logic
             const generateTicket = (type) => {
