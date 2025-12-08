@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistema de Senhas</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <!-- Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <!-- React Libraries -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/history@5/umd/history.development.js"></script>
+    <script src="https://unpkg.com/react-router@6.3.0/umd/react-router.development.js"></script>
+    <script src="https://unpkg.com/react-router-dom@6.3.0/umd/react-router-dom.development.js"></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+    <script>
+    // Tailwind Config
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#137fec",
+            "background-light": "#f6f7f8",
+            "background-dark": "#101922",
+          },
+          fontFamily: {
+            "display": ["Inter", "sans-serif"]
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+    </script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
+        html.dark body {
+            background-color: #101922;
+        }
+        body {
+            background-color: #f6f7f8;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const { createRoot } = ReactDOM;
+        const { MemoryRouter, Routes, Route, Link, useNavigate } = ReactRouterDOM;
+
+        // --- Utils ---
+        const formatTimeAgo = (date) => {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            if (diffMins < 1) return 'agora mesmo';
+            if (diffMins === 1) return '1 minuto';
+            return `${diffMins} minutos`;
+        };
+
+        // --- Reusable Components ---
+        const Icon = ({ name, className }) => <span className={`material-symbols-outlined ${className}`}>{name}</span>;
+
+        const Logo = ({ className }) => (
+            <div className={`text-primary ${className}`}>
+                <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                    <g clipPath="url(#clip0_6_330)">
+                        <path clipRule="evenodd" d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z" fill="currentColor" fillRule="evenodd"></path>
+                    </g>
+                    <defs>
+                        <clipPath id="clip0_6_330"><rect fill="white" height="48" width="48"></rect></clipPath>
+                    </defs>
+                </svg>
+            </div>
+        );
+
+
+        // --- Screen 1: Public Display ---
+        function PublicDisplayPage({ currentTicket, lastCalled }) {
+            return (
+                <div className="font-display bg-background-light dark:bg-background-dark">
+                    <div className="relative flex h-screen w-full flex-col items-center justify-center p-4 sm:p-6 md:p-8">
+                        <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
+                            <header className="mb-8 flex items-center gap-3 text-slate-400 dark:text-slate-500">
+                                <Icon name="confirmation_number" className="text-3xl" />
+                                <h2 className="text-xl font-bold tracking-wider uppercase">Sistema de Atendimento</h2>
+                            </header>
+                            <div className="flex w-full flex-col items-center rounded-xl bg-white/5 p-8 shadow-2xl ring-1 ring-white/10 sm:p-12 md:p-16">
+                                <h1 className="text-3xl font-bold uppercase tracking-widest text-primary sm:text-4xl">
+                                    SENHA ATUAL
+                                </h1>
+                                <div className="my-4 h-px w-24 bg-white/10"></div>
+                                <p className="font-black text-white" style={{ fontSize: 'clamp(6rem, 25vw, 16rem)', lineHeight: 1 }}>
+                                    {currentTicket ? currentTicket.id : '---'}
+                                </p>
+                                <div className="my-4 h-px w-24 bg-white/10"></div>
+                                <h2 className="text-4xl font-bold text-slate-300 dark:text-slate-400 sm:text-5xl md:text-6xl">
+                                    {currentTicket ? currentTicket.station : 'AGUARDANDO...'}
+                                </h2>
+                            </div>
+                            <footer className="mt-8 w-full max-w-4xl rounded-xl bg-white/5 px-4 py-3 text-center ring-1 ring-white/10">
+                                <p className="text-base font-normal leading-normal text-slate-400 dark:text-slate-500">
+                                    Últimas Senhas Chamadas: {lastCalled.length > 0 ? lastCalled.map((ticketId, index) => (
+                                        <React.Fragment key={index}>
+                                            <span className="font-medium text-slate-300 dark:text-slate-400">{ticketId}</span>
+                                            {index < lastCalled.length - 1 && ', '}
+                                        </React.Fragment>
+                                    )) : 'Nenhuma'}
+                                </p>
+                            </footer>
+                        </div>
+                        <div className="absolute inset-0 -z-10 h-full w-full bg-background-dark">
+                            <div className="absolute bottom-0 left-0 right-0 top-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+                        </div>
+                        <div className="absolute bottom-4 right-4">
+                            <Link to="/management" className="px-4 py-2 text-sm bg-primary text-white rounded-lg opacity-50 hover:opacity-100 transition-opacity">
+                                Acessar Gerenciamento
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- Screen 2: Ticket Generation ---
+        function TicketGenerationPage({ generateTicket, generatedTickets, nextNormal, nextPreferencial }) {
+            // Force re-render periodically to update "time ago"
+            const [, setTick] = useState(0);
+            useEffect(() => {
+                const timer = setInterval(() => setTick(t => t + 1), 60000);
+                return () => clearInterval(timer);
+            }, []);
+
+            return (
+                <div className="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark group/design-root overflow-x-hidden">
+                    <div className="layout-container flex h-full grow flex-col">
+                        <div className="flex flex-1 justify-center py-5">
+                            <div className="layout-content-container flex flex-col w-full max-w-6xl flex-1 px-4 sm:px-6 lg:px-8">
+                                <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-gray-200/10 dark:border-white/10 px-4 sm:px-6 py-4">
+                                    <div className="flex items-center gap-4 text-white">
+                                        <Logo className="size-6 sm:size-7"/>
+                                        <h2 className="text-black dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Gerenciamento de Senhas</h2>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="hidden sm:flex items-center gap-2 rounded-lg bg-green-500/10 dark:bg-green-500/20 px-3 h-10">
+                                            <Icon name="print" className="text-green-500" />
+                                            <p className="text-sm font-medium text-green-400">Impressora Conectada</p>
+                                        </div>
+                                        <Link to="/management" className="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 bg-gray-200 dark:bg-white/10 text-gray-800 dark:text-white gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-2.5">
+                                            <Icon name="login" className="text-lg" />
+                                            <span className="hidden sm:inline">Painel do Atendente</span>
+                                        </Link>
+                                    </div>
+                                </header>
+                                <main className="flex flex-1 flex-col lg:flex-row gap-8 mt-8">
+                                    <div className="flex-1 lg:flex-[2_2_0%]">
+                                        <div className="flex flex-wrap justify-between gap-3 p-4">
+                                            <div className="flex min-w-72 flex-col gap-3">
+                                                <p className="text-gray-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">Gerar Nova Senha</p>
+                                                <p className="text-gray-500 dark:text-gray-400 text-base font-normal leading-normal">Gere senhas de atendimento normal ou preferencial.</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-center mt-8">
+                                            <div className="flex w-full flex-col gap-6 px-4 py-3 max-w-lg">
+                                                <div className="flex flex-col gap-2">
+                                                    <button onClick={() => generateTicket('Normal')} className="flex w-full min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-20 px-5 bg-primary text-white text-xl font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors duration-200">
+                                                        <span className="truncate">Gerar Senha Normal</span>
+                                                    </button>
+                                                    <p className="text-sm text-center text-gray-500 dark:text-gray-400">Próxima: {nextNormal}</p>
+                                                </div>
+                                                <div className="flex flex-col gap-2">
+                                                    <button onClick={() => generateTicket('Preferencial')} className="flex w-full min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-20 px-5 bg-gray-200 dark:bg-white/10 text-gray-800 dark:text-white text-xl font-bold leading-normal tracking-[0.015em] hover:bg-gray-300 dark:hover:bg-white/20 transition-colors duration-200">
+                                                        <span className="truncate">Gerar Senha Preferencial</span>
+                                                    </button>
+                                                    <p className="text-sm text-center text-gray-500 dark:text-gray-400">Próxima: {nextPreferencial}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <aside className="w-full lg:w-96 lg:flex-[1_1_0%] bg-gray-100 dark:bg-black/20 rounded-xl p-6 flex flex-col">
+                                        <h2 className="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] pb-3 pt-2">Últimas Senhas Geradas</h2>
+                                        <div className="flex flex-col gap-2 mt-4 max-h-[500px] overflow-y-auto">
+                                            {generatedTickets.map((ticket, index) => (
+                                                <div key={index} className="flex items-center gap-4 bg-transparent dark:bg-transparent px-4 min-h-[72px] py-2 justify-between border-b border-gray-200 dark:border-white/10">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="text-white flex items-center justify-center rounded-lg bg-gray-300 dark:bg-white/10 shrink-0 size-12">
+                                                            <Icon name="confirmation_number" className="text-gray-700 dark:text-gray-300" />
+                                                        </div>
+                                                        <div className="flex flex-col justify-center">
+                                                            <p className="text-gray-900 dark:text-white text-base font-medium leading-normal line-clamp-1">{ticket.id}</p>
+                                                            <p className="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal line-clamp-2">Gerado há {formatTimeAgo(ticket.timestamp)}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="shrink-0">
+                                                        <p className={ticket.type === 'Preferencial' ? "text-yellow-600 dark:text-yellow-400 text-base font-medium leading-normal" : "text-gray-700 dark:text-gray-300 text-base font-normal leading-normal"}>
+                                                            {ticket.type}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </aside>
+                                </main>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- Screen 3: Queue Management ---
+        function QueueManagementPage({ queue, currentTicket, callNextTicket, skipTicket, completeTicket }) {
+
+            const StatusBadge = ({ status }) => {
+                const baseClasses = "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium";
+                if (status === 'Chamado') {
+                    return <span className={`${baseClasses} bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300`}>Chamado</span>;
+                }
+                return <span className={`${baseClasses} bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300`}>Em Espera</span>;
+            };
+
+            const QueueItem = ({ ticket }) => (
+                <div className="flex items-center justify-between p-4 rounded-lg bg-white dark:bg-[#192633] shadow-sm">
+                    <div className="flex items-center gap-4">
+                        <span className="text-gray-800 dark:text-white text-xl font-bold">{ticket.id}</span>
+                        <div className="flex flex-col items-start">
+                             <StatusBadge status={ticket.status} />
+                             <span className="text-xs text-gray-500 mt-1">{ticket.type}</span>
+                        </div>
+                    </div>
+                    {/* <button className="flex items-center justify-center size-9 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+                        <Icon name="more_vert" className="text-xl" />
+                    </button> */}
+                </div>
+            );
+
+            return (
+                <div className="bg-background-light dark:bg-background-dark font-display">
+                    <div className="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+                        <div className="layout-container flex h-full grow flex-col">
+                            <div className="px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 flex flex-1 justify-center py-5">
+                                <div className="layout-content-container flex flex-col max-w-[960px] flex-1">
+                                    <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-gray-200 dark:border-b-[#233648] px-4 sm:px-6 md:px-10 py-3">
+                                        <div className="flex items-center gap-4 text-gray-800 dark:text-white">
+                                            <Link to="/" className="size-6 text-primary">
+                                                <svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"></path></svg>
+                                            </Link>
+                                            <h2 className="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Gerenciamento de Fila</h2>
+                                        </div>
+                                        <div className="flex flex-1 justify-end gap-8">
+                                            <Link to="/generator">
+                                                <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" style={{ backgroundImage: `url("https://lh3.googleusercontent.com/aida-public/AB6AXuAKCBoJ3Dr8Tl6jTxHlrGCg3Aw5W26Fwze_cE1n8zpKsyMtCduFmkjD-8gDcvdGHDZXSyXbRHUo718Qkgm87v77_MZIjmOkOTGy7r4uAQSm4Z8ncVZbDOOxXg4h9Cih-zzZvYxXYnPT7WDrDCowPvW74_ThYqUwfxk14_9rcDXJjf6g3bUKeQPVlXjZfabPlMVjyPvy_kU2jScbjWyssGGeMhYXlSO6666alikjhLPTnWxqL_MKo3j7cC_h7Dg1mC3lew3BETMa7Uo")` }}></div>
+                                            </Link>
+                                        </div>
+                                    </header>
+                                    <main className="flex-1">
+                                        <div className="flex flex-wrap justify-between gap-3 p-4 pt-8 sm:px-6 md:px-10">
+                                            <p className="text-gray-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em] min-w-72">Controle de Atendimento</p>
+                                        </div>
+
+                                        {currentTicket && (
+                                            <div className="p-4 sm:px-6 md:px-8 @container">
+                                                <div className="flex flex-col items-stretch justify-start rounded-xl @xl:flex-row @xl:items-center shadow-sm bg-white dark:bg-[#192633]">
+                                                    <div className="flex w-full min-w-72 grow flex-col items-stretch justify-center gap-2 p-6 @xl:px-8">
+                                                        <p className="text-gray-700 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Senha Atual</p>
+                                                        <div className="flex items-center gap-4 justify-between">
+                                                            <p className="text-primary text-6xl font-black leading-none">{currentTicket.id}</p>
+                                                            <div className="flex items-center gap-3">
+                                                                <button onClick={completeTicket} className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary/20 text-primary text-sm font-bold leading-normal gap-2 transition-colors hover:bg-primary/30">
+                                                                    <Icon name="check_circle" className="text-lg" />
+                                                                    <span className="truncate">Concluir Atendimento</span>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{currentTicket.type} - {currentTicket.station}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="flex justify-stretch">
+                                            <div className="flex flex-1 gap-3 flex-wrap px-4 py-3 sm:px-6 md:px-8 justify-start">
+                                                <button onClick={callNextTicket} disabled={queue.length === 0} className={`flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-primary text-white text-base font-bold leading-normal tracking-[0.015em] gap-2 transition-transform hover:scale-[1.02] active:scale-[0.98] ${queue.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                                    <Icon name="play_arrow" />
+                                                    <span className="truncate">Chamar Próxima</span>
+                                                </button>
+                                                <button onClick={skipTicket} disabled={queue.length === 0} className={`flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-gray-200 dark:bg-[#233648] text-gray-800 dark:text-white text-base font-bold leading-normal tracking-[0.015em] gap-2 transition-colors hover:bg-gray-300 dark:hover:bg-[#30455a] ${queue.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                                    <Icon name="fast_forward" />
+                                                    <span className="truncate">Pular</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <h2 className="text-gray-900 dark:text-white text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 sm:px-6 md:px-8 pb-3 pt-5">Fila de Espera ({queue.length})</h2>
+                                        <div className="flex flex-col gap-3 px-4 sm:px-6 md:px-8 pb-10">
+                                            {queue.length > 0 ? (
+                                                queue.map(ticket => <QueueItem key={ticket.id} ticket={ticket} />)
+                                            ) : (
+                                                <div className="flex flex-col items-center justify-center gap-4 p-10 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl text-center">
+                                                    <Icon name="inbox" className="text-5xl text-gray-400 dark:text-gray-500" />
+                                                    <h3 className="text-lg font-bold text-gray-800 dark:text-white">Nenhuma senha na fila de espera</h3>
+                                                    <p className="text-gray-500 dark:text-gray-400 max-w-xs">Tudo tranquilo por aqui! A fila está vazia.</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </main>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- App Component with Shared State ---
+        function App() {
+            // State
+            const [queue, setQueue] = useState([]);
+            const [currentTicket, setCurrentTicket] = useState(null);
+            const [lastCalled, setLastCalled] = useState([]);
+            const [generatedTickets, setGeneratedTickets] = useState([]);
+            const [counters, setCounters] = useState({ Normal: 0, Preferencial: 0 });
+
+            // Audio Context Ref to reuse context
+            const audioCtxRef = useRef(null);
+
+            // Initialize dark mode
+            useEffect(() => {
+                document.documentElement.classList.add('dark');
+            }, []);
+
+            const playChime = async () => {
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioContext) return;
+
+                    if (!audioCtxRef.current) {
+                        audioCtxRef.current = new AudioContext();
+                    }
+
+                    const ctx = audioCtxRef.current;
+                    // Resume if suspended (common in browsers)
+                    if (ctx.state === 'suspended') {
+                        await ctx.resume();
+                    }
+
+                    const now = ctx.currentTime;
+
+                    // Oscillator 1 (Ding)
+                    const osc1 = ctx.createOscillator();
+                    const gain1 = ctx.createGain();
+                    osc1.type = "sine";
+                    osc1.frequency.setValueAtTime(660, now); // E5
+                    gain1.gain.setValueAtTime(0, now);
+                    gain1.gain.linearRampToValueAtTime(0.3, now + 0.05);
+                    gain1.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+                    osc1.connect(gain1);
+                    gain1.connect(ctx.destination);
+                    osc1.start(now);
+                    osc1.stop(now + 1.5);
+
+                    // Oscillator 2 (Dong)
+                    const osc2 = ctx.createOscillator();
+                    const gain2 = ctx.createGain();
+                    osc2.type = "sine";
+                    osc2.frequency.setValueAtTime(550, now + 0.6); // C#5
+                    gain2.gain.setValueAtTime(0, now + 0.6);
+                    gain2.gain.linearRampToValueAtTime(0.3, now + 0.65);
+                    gain2.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+                    osc2.connect(gain2);
+                    gain2.connect(ctx.destination);
+                    osc2.start(now + 0.6);
+                    osc2.stop(now + 2.5);
+
+                    return new Promise(resolve => setTimeout(resolve, 2000));
+                } catch (e) {
+                    console.error("Audio playback error:", e);
+                }
+            };
+
+            const speakAnnouncement = (text) => {
+                if ('speechSynthesis' in window) {
+                    // Cancel any previous speaking
+                    window.speechSynthesis.cancel();
+
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'pt-BR';
+                    utterance.rate = 0.9;
+                    window.speechSynthesis.speak(utterance);
+                }
+            };
+
+            // Play sound and speak when currentTicket changes
+            useEffect(() => {
+                if (currentTicket) {
+                    playChime().then(() => {
+                        const text = `Senha ${currentTicket.id}, ${currentTicket.station}`;
+                        speakAnnouncement(text);
+                    });
+                }
+            }, [currentTicket]);
+
+            // Logic
+            const generateTicket = (type) => {
+                setCounters(prev => {
+                    const nextCount = prev[type] + 1;
+                    const prefix = type === 'Normal' ? 'N' : 'P';
+                    const number = String(nextCount).padStart(3, '0');
+                    const newId = `${prefix}${number}`;
+
+                    const newTicket = {
+                        id: newId,
+                        type,
+                        status: 'Em Espera',
+                        timestamp: new Date()
+                    };
+
+                    setQueue(q => [...q, newTicket]);
+                    setGeneratedTickets(g => [newTicket, ...g]);
+
+                    return { ...prev, [type]: nextCount };
+                });
+            };
+
+            const callNextTicket = () => {
+                if (queue.length === 0) return;
+
+                // Priority Logic: Try to find the first 'Preferencial' ticket
+                const preferencialIndex = queue.findIndex(t => t.type === 'Preferencial');
+                let nextTicketIndex = 0; // Default to first (FIFO)
+
+                if (preferencialIndex !== -1) {
+                    // Prioritize Preferencial tickets
+                    nextTicketIndex = preferencialIndex;
+                }
+
+                const nextTicket = queue[nextTicketIndex];
+                const newQueue = queue.filter((_, i) => i !== nextTicketIndex);
+
+                setQueue(newQueue);
+
+                if (currentTicket) {
+                     setLastCalled(prev => [currentTicket.id, ...prev].slice(0, 5));
+                }
+
+                setCurrentTicket({ ...nextTicket, status: 'Chamado', station: 'GUICHÊ 01' });
+            };
+
+            const skipTicket = () => {
+                if (queue.length === 0) return;
+                // Remove the first ticket without calling it
+                setQueue(q => q.slice(1));
+            };
+
+            const completeTicket = () => {
+                if (currentTicket) {
+                    setLastCalled(prev => [currentTicket.id, ...prev].slice(0, 5));
+                }
+                setCurrentTicket(null);
+            };
+
+            // Calculate next numbers for display
+            const getNextNumber = (type) => {
+                 const prefix = type === 'Normal' ? 'N' : 'P';
+                 return `${prefix}${String(counters[type] + 1).padStart(3, '0')}`;
+            };
+
+            return (
+                <MemoryRouter>
+                    <Routes>
+                        <Route path="/" element={
+                            <PublicDisplayPage
+                                currentTicket={currentTicket}
+                                lastCalled={lastCalled}
+                            />
+                        } />
+                        <Route path="/generator" element={
+                            <TicketGenerationPage
+                                generateTicket={generateTicket}
+                                generatedTickets={generatedTickets}
+                                nextNormal={getNextNumber('Normal')}
+                                nextPreferencial={getNextNumber('Preferencial')}
+                            />
+                        } />
+                        <Route path="/management" element={
+                            <QueueManagementPage
+                                queue={queue}
+                                currentTicket={currentTicket}
+                                callNextTicket={callNextTicket}
+                                skipTicket={skipTicket}
+                                completeTicket={completeTicket}
+                            />
+                        } />
+                    </Routes>
+                </MemoryRouter>
+            );
+        }
+
+        const container = document.getElementById('root');
+        const root = createRoot(container);
+        root.render(<App />);
+    </script>
+</body>
+</html>
