@@ -105,7 +105,7 @@
         function PublicDisplayPage({ currentTicket, lastCalled }) {
             return (
                 <div className="font-display bg-background-light dark:bg-background-dark">
-                    <div className="relative flex h-screen w-full flex-col items-center justify-center p-4 sm:p-6 md:p-8">
+                    <div className="relative flex min-h-screen w-full flex-col items-center justify-center p-4 sm:p-6 md:p-8">
                         <div className="flex w-full max-w-4xl flex-col items-center justify-center text-center">
                             <header className="mb-8 flex items-center gap-3 text-slate-400 dark:text-slate-500">
                                 <Icon name="confirmation_number" className="text-3xl" />
@@ -116,7 +116,7 @@
                                     SENHA ATUAL
                                 </h1>
                                 <div className="my-4 h-px w-24 bg-white/10"></div>
-                                <p className="font-black text-white" style={{ fontSize: 'clamp(6rem, 25vw, 16rem)', lineHeight: 1 }}>
+                                <p className="font-black text-white" style={{ fontSize: 'clamp(4rem, 20vw, 16rem)', lineHeight: 1 }}>
                                     {currentTicket ? currentTicket.id : '---'}
                                 </p>
                                 <div className="my-4 h-px w-24 bg-white/10"></div>
@@ -134,11 +134,16 @@
                                     )) : 'Nenhuma'}
                                 </p>
                             </footer>
+                            <div className="mt-8 sm:hidden w-full">
+                                <Link to="/management" className="block w-full px-4 py-3 text-center text-sm bg-primary text-white rounded-lg opacity-80 hover:opacity-100 transition-opacity">
+                                    Acessar Gerenciamento
+                                </Link>
+                            </div>
                         </div>
                         <div className="absolute inset-0 -z-10 h-full w-full bg-background-dark">
                             <div className="absolute bottom-0 left-0 right-0 top-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
                         </div>
-                        <div className="absolute bottom-4 right-4">
+                        <div className="hidden sm:block absolute bottom-4 right-4">
                             <Link to="/management" className="px-4 py-2 text-sm bg-primary text-white rounded-lg opacity-50 hover:opacity-100 transition-opacity">
                                 Acessar Gerenciamento
                             </Link>
@@ -178,7 +183,7 @@
                                         </Link>
                                     </div>
                                 </header>
-                                <main className="flex flex-1 flex-col lg:flex-row gap-8 mt-8">
+                                <main className="flex flex-1 flex-col lg:flex-row gap-8 mt-4 lg:mt-8">
                                     <div className="flex-1 lg:flex-[2_2_0%]">
                                         <div className="flex flex-wrap justify-between gap-3 p-4">
                                             <div className="flex min-w-72 flex-col gap-3">
@@ -289,10 +294,10 @@
                                                 <div className="flex flex-col items-stretch justify-start rounded-xl @xl:flex-row @xl:items-center shadow-sm bg-white dark:bg-[#192633]">
                                                     <div className="flex w-full min-w-72 grow flex-col items-stretch justify-center gap-2 p-6 @xl:px-8">
                                                         <p className="text-gray-700 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Senha Atual</p>
-                                                        <div className="flex items-center gap-4 justify-between">
+                                                        <div className="flex flex-col sm:flex-row items-center gap-4 justify-between">
                                                             <p className="text-primary text-6xl font-black leading-none">{currentTicket.id}</p>
-                                                            <div className="flex items-center gap-3">
-                                                                <button onClick={completeTicket} className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary/20 text-primary text-sm font-bold leading-normal gap-2 transition-colors hover:bg-primary/30">
+                                                            <div className="flex items-center gap-3 w-full sm:w-auto">
+                                                                <button onClick={completeTicket} className="flex w-full sm:w-auto min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary/20 text-primary text-sm font-bold leading-normal gap-2 transition-colors hover:bg-primary/30">
                                                                     <Icon name="check_circle" className="text-lg" />
                                                                     <span className="truncate">Concluir Atendimento</span>
                                                                 </button>
@@ -306,11 +311,11 @@
 
                                         <div className="flex justify-stretch">
                                             <div className="flex flex-1 gap-3 flex-wrap px-4 py-3 sm:px-6 md:px-8 justify-start">
-                                                <button onClick={callNextTicket} disabled={queue.length === 0} className={`flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-primary text-white text-base font-bold leading-normal tracking-[0.015em] gap-2 transition-transform hover:scale-[1.02] active:scale-[0.98] ${queue.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                                <button onClick={callNextTicket} disabled={queue.length === 0} className={`flex w-full sm:w-auto min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-primary text-white text-base font-bold leading-normal tracking-[0.015em] gap-2 transition-transform hover:scale-[1.02] active:scale-[0.98] ${queue.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}>
                                                     <Icon name="play_arrow" />
                                                     <span className="truncate">Chamar Próxima</span>
                                                 </button>
-                                                <button onClick={skipTicket} disabled={queue.length === 0} className={`flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-gray-200 dark:bg-[#233648] text-gray-800 dark:text-white text-base font-bold leading-normal tracking-[0.015em] gap-2 transition-colors hover:bg-gray-300 dark:hover:bg-[#30455a] ${queue.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                                <button onClick={skipTicket} disabled={queue.length === 0} className={`flex w-full sm:w-auto min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-gray-200 dark:bg-[#233648] text-gray-800 dark:text-white text-base font-bold leading-normal tracking-[0.015em] gap-2 transition-colors hover:bg-gray-300 dark:hover:bg-[#30455a] ${queue.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}>
                                                     <Icon name="fast_forward" />
                                                     <span className="truncate">Pular</span>
                                                 </button>
@@ -345,6 +350,11 @@
             const [lastCalled, setLastCalled] = useState([]);
             const [generatedTickets, setGeneratedTickets] = useState([]);
             const [counters, setCounters] = useState({ Normal: 0, Preferencial: 0 });
+
+            const STATIONS = [
+                "Polenta", "Bolt", "Chase", "Marshall", "Skye",
+                "Rocky", "Zuma", "Rubble", "Everest", "Tracker"
+            ];
 
             // Audio Context Ref to reuse context
             const audioCtxRef = useRef(null);
@@ -468,7 +478,8 @@
                      setLastCalled(prev => [currentTicket.id, ...prev].slice(0, 5));
                 }
 
-                setCurrentTicket({ ...nextTicket, status: 'Chamado', station: 'GUICHÊ 01' });
+                const randomStation = STATIONS[Math.floor(Math.random() * STATIONS.length)];
+                setCurrentTicket({ ...nextTicket, status: 'Chamado', station: randomStation });
             };
 
             const skipTicket = () => {
